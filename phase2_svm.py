@@ -164,7 +164,7 @@ gamma_values = [0.001, 0.01, 0.1, 1]
 rbf_results = np.zeros((len(C_values), len(gamma_values)))
 
 for i, C in enumerate(C_values):
-    # for j, gamma in enumerate(gamma_values):
+    for j, gamma in enumerate(gamma_values):
 
         svm_rbf = SVC(
             kernel='rbf',
