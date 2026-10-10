@@ -1,4 +1,6 @@
 # importing libraries #
+import os as _os
+
 import pandas as pd
 import numpy as np
 import random
@@ -7,6 +9,24 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 
+# every figure in this assignment is written to outputs/ as a PNG #
+_os.makedirs("outputs", exist_ok=True)
+
+# helper: saving the current figure into outputs/ #
+def save_fig(filename, dpi=150):
+    # filenames are descriptive & unique per script, they are always written into
+    # outputs/ (relative to the project root) so re-running overwrites cleanly
+    _os.makedirs("outputs", exist_ok=True)
+
+    path = _os.path.join("outputs", filename)
+
+    # 150 dpi keeps the plots sharp enough for the report #
+    plt.savefig(path, dpi=dpi, bbox_inches='tight')
+
+    print(f"saved figure: {path}")
+
+    # the figure is still open, so the plt.show() which follows can display it #
+
 # setting random seed for reproducibility #
 SEED = 42
 
@@ -14,9 +34,23 @@ random.seed(SEED)
 np.random.seed(SEED)
 
 # loading windowed datasets #
-features_30 = pd.read_csv("features_30.csv")
-features_60 = pd.read_csv("features_60.csv")
-features_120 = pd.read_csv("features_120.csv")
+# windowed feature datasets live in data/ (paths are relative to the project root) #
+def data_path(filename):
+    preferred = _os.path.join("data", filename)
+    if _os.path.exists(preferred):
+        return preferred
+    if _os.path.exists(filename):
+        print(f"note: {filename} is still in the project root; "
+              f"using it. move it into data/ to match the documented layout.")
+        return filename
+    raise FileNotFoundError(
+        f"{filename} not found in data/ or in the project root. "
+        "Run code/phase1.py first (from the project root) to generate it."
+    )
+
+features_30 = pd.read_csv(data_path("features_30.csv"))
+features_60 = pd.read_csv(data_path("features_60.csv"))
+features_120 = pd.read_csv(data_path("features_120.csv"))
 
 # Data Preparation Before Start of Phase 2 kNN #
 # preparing window size 30 #
@@ -125,14 +159,14 @@ for k in k_values:
     euclidean_uniform_scores.append(mean_accuracy)
 
     # displaying results
-    # print(f"k = {k}")
-    # print("Fold accuracies:")
+    print(f"k = {k}")
+    print("Fold accuracies:")
 
-    # for fold, accuracy in enumerate(scores, start=1):
-        # print(f"Fold {fold}: {accuracy:.4f}")
+    for fold, accuracy in enumerate(scores, start=1):
+        print(f"Fold {fold}: {accuracy:.4f}")
 
-    # print(f"Mean CV accuracy: {mean_accuracy:.4f}")
-    # print()
+    print(f"Mean CV accuracy: {mean_accuracy:.4f}")
+    print()
 
 # experiment 2: euclidean distance + distance weighting #
 euclidean_distance_scores = []
@@ -162,14 +196,14 @@ for k in k_values:
     euclidean_distance_scores.append(mean_accuracy)
 
     # displaying results
-    # print(f"k = {k}")
-    # print("Fold accuracies:")
+    print(f"k = {k}")
+    print("Fold accuracies:")
 
-    # for fold, accuracy in enumerate(scores, start=1):
-        # print(f"Fold {fold}: {accuracy:.4f}")
+    for fold, accuracy in enumerate(scores, start=1):
+        print(f"Fold {fold}: {accuracy:.4f}")
 
-    # print(f"Mean CV accuracy: {mean_accuracy:.4f}")
-    # print()
+    print(f"Mean CV accuracy: {mean_accuracy:.4f}")
+    print()
 
 # experiment 3: manhattan distance + uniform weighting #
 manhattan_uniform_scores = []
@@ -199,14 +233,14 @@ for k in k_values:
     manhattan_uniform_scores.append(mean_accuracy)
 
     # displaying results
-    # print(f"k = {k}")
-    # print("Fold accuracies:")
+    print(f"k = {k}")
+    print("Fold accuracies:")
 
-    # for fold, accuracy in enumerate(scores, start=1):
-        # print(f"Fold {fold}: {accuracy:.4f}")
+    for fold, accuracy in enumerate(scores, start=1):
+        print(f"Fold {fold}: {accuracy:.4f}")
 
-    # print(f"Mean CV accuracy: {mean_accuracy:.4f}")
-    # print()
+    print(f"Mean CV accuracy: {mean_accuracy:.4f}")
+    print()
 
 # experiment 4: manhattan distance + distance weighting #
 manhattan_distance_scores = []
@@ -236,40 +270,41 @@ for k in k_values:
     manhattan_distance_scores.append(mean_accuracy)
 
     # displaying results
-    # print(f"k = {k}")
-    # print("Fold accuracies:")
+    print(f"k = {k}")
+    print("Fold accuracies:")
 
-    # for fold, accuracy in enumerate(scores, start=1):
-        # print(f"Fold {fold}: {accuracy:.4f}")
+    for fold, accuracy in enumerate(scores, start=1):
+        print(f"Fold {fold}: {accuracy:.4f}")
 
-    # print(f"Mean CV accuracy: {mean_accuracy:.4f}")
-    # print()
+    print(f"Mean CV accuracy: {mean_accuracy:.4f}")
+    print()
 
 # plotting accuracy vs k for all kNN configurations #
 
-# plt.figure(figsize=(8, 5))
+plt.figure(figsize=(8, 5))
 
-# plt.plot(k_values, euclidean_uniform_scores, marker='o',
-         # label='Euclidean + Uniform')
+plt.plot(k_values, euclidean_uniform_scores, marker='o',
+         label='Euclidean + Uniform')
 
-# plt.plot(k_values, euclidean_distance_scores, marker='o',
-         # label='Euclidean + Distance')
+plt.plot(k_values, euclidean_distance_scores, marker='o',
+         label='Euclidean + Distance')
 
-# plt.plot(k_values, manhattan_uniform_scores, marker='o',
-         # label='Manhattan + Uniform')
+plt.plot(k_values, manhattan_uniform_scores, marker='o',
+         label='Manhattan + Uniform')
 
-#plt.plot(k_values, manhattan_distance_scores, marker='o',
-         # label='Manhattan + Distance')
+plt.plot(k_values, manhattan_distance_scores, marker='o',
+         label='Manhattan + Distance')
 
-# plt.xlabel('Number of Neighbours (k)')
-# plt.ylabel('Mean 5-Fold CV Accuracy')
-# plt.title('kNN Accuracy vs k')
+plt.xlabel('Number of Neighbours (k)')
+plt.ylabel('Mean 5-Fold CV Accuracy')
+plt.title('kNN Accuracy vs k')
 
-# plt.xticks(k_values)
-# plt.legend()
-# plt.grid(True)
+plt.xticks(k_values)
+plt.legend()
+plt.grid(True)
 
-# plt.show()
+save_fig("phase2_knn_accuracy_vs_k.png")
+plt.show()
 
 # comparing effect of different window sizes on kNN performance #
 # using manhattan + distance configuration due to greatest accuracy #

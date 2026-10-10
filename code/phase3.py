@@ -1,7 +1,10 @@
 # 3.4 Final Model Evaluation #
 
 # importing libraries #
-import setuptools.dist
+import os as _os
+
+# used to time how long each final model takes to train #
+import time
 
 import pandas as pd
 import numpy as np
@@ -29,6 +32,31 @@ from sklearn.metrics import (
     average_precision_score
 )
 
+# every figure in this assignment is written to outputs/ as a PNG #
+_os.makedirs("outputs", exist_ok=True)
+
+# helper: saving the current figure into outputs/ #
+def save_fig(filename, dpi=150):
+    # filenames are descriptive & unique per script, they are always written into
+    # outputs/ (relative to the project root) so re-running overwrites cleanly
+    _os.makedirs("outputs", exist_ok=True)
+
+    path = _os.path.join("outputs", filename)
+
+    # 150 dpi keeps the plots sharp enough for the report #
+    plt.savefig(path, dpi=dpi, bbox_inches='tight')
+
+    print(f"saved figure: {path}")
+
+    # the figure is still open, so the plt.show() which follows can display it #
+
+# helper: turning a model name into a filename friendly token #
+def slug(text):
+    # 'Neural Network' -> 'neural_network', 'k-NN' -> 'k_nn' #
+    cleaned = text.lower().replace('-', ' ').replace('_', ' ')
+
+    return '_'.join(cleaned.split())
+
 # setting random seed for reproducibility #
 SEED = 42
 
@@ -37,7 +65,21 @@ np.random.seed(SEED)
 tf.random.set_seed(SEED)
 
 # loading selected window size dataset #
-features_120 = pd.read_csv("features_120.csv")
+# windowed feature datasets live in data/ (paths are relative to the project root) #
+def data_path(filename):
+    preferred = _os.path.join("data", filename)
+    if _os.path.exists(preferred):
+        return preferred
+    if _os.path.exists(filename):
+        print(f"note: {filename} is still in the project root; "
+              f"using it. move it into data/ to match the documented layout.")
+        return filename
+    raise FileNotFoundError(
+        f"{filename} not found in data/ or in the project root. "
+        "Run code/phase1.py first (from the project root) to generate it."
+    )
+
+features_120 = pd.read_csv(data_path("features_120.csv"))
 
 # separating input features (X) from target label (y) #
 X_120 = features_120.drop('label', axis=1)
@@ -90,14 +132,36 @@ final_nn.compile(
     metrics=['accuracy']
 )
 
-# training final neural network model on full training set #
-final_nn.fit(
+# adding early stopping #
+# a tenth of the training set is held back as the validation set & training stops
+# once the validation loss has not improved for 10 consecutive epochs #
+early_stopping = keras.callbacks.EarlyStopping(
+    monitor='val_loss',
+    patience=10,
+    restore_best_weights=True
+)
+
+# training final neural network model on the training set #
+# (one validation split is carved out of the training set by Keras, so the
+# held-out test set is still only touched by the evaluate call below) #
+start_time = time.perf_counter()
+
+nn_history = final_nn.fit(
     X_train_120_scaled,
     y_train_120,
+    validation_split=0.1,
     epochs=100,
     batch_size=32,
+    callbacks=[early_stopping],
     verbose=0
 )
+
+nn_training_time = time.perf_counter() - start_time
+
+# reporting how long the neural network took to train #
+print("\nFinal Neural Network Training")
+print(f"Epochs run: {len(nn_history.history['loss'])} (out of 100, early stopping)")
+print(f"Training time: {nn_training_time:.2f} seconds")
 
 # evaluating final neural network on held-out test set #
 nn_test_loss, nn_test_accuracy = final_nn.evaluate(
@@ -121,10 +185,14 @@ final_svm = SVC(
 )
 
 # training final SVM on full training set #
+start_time = time.perf_counter()
+
 final_svm.fit(
     X_train_120_scaled,
     y_train_120
 )
+
+svm_training_time = time.perf_counter() - start_time
 
 # evaluating final SVM on held-out test set #
 svm_test_accuracy = final_svm.score(
@@ -134,6 +202,7 @@ svm_test_accuracy = final_svm.score(
 
 print("\nFinal SVM Test Results")
 print(f"Test Accuracy: {svm_test_accuracy:.4f}")
+print(f"Training time: {svm_training_time:.2f} seconds")
 
 # final kNN model #
 # using k = 25, Manhattan distance, & distance weighting #
@@ -146,10 +215,14 @@ final_knn = KNeighborsClassifier(
 )
 
 # training final k-NN on full training set #
+start_time = time.perf_counter()
+
 final_knn.fit(
     X_train_120_scaled,
     y_train_120
 )
+
+knn_training_time = time.perf_counter() - start_time
 
 # evaluating final k-NN on held-out test set #
 knn_test_accuracy = final_knn.score(
@@ -159,6 +232,13 @@ knn_test_accuracy = final_knn.score(
 
 print("\nFinal k-NN Test Results")
 print(f"Test Accuracy: {knn_test_accuracy:.4f}")
+print(f"Training time: {knn_training_time:.2f} seconds")
+
+# comparing training duration of the three final models #
+print("\nTraining Time Comparison")
+print(f"SVM training time: {svm_training_time:.2f} seconds")
+print(f"k-NN training time: {knn_training_time:.2f} seconds")
+print(f"Neural Network training time: {nn_training_time:.2f} seconds")
 
 # generating predictions for final models #
 
@@ -193,6 +273,7 @@ for model_name, predictions in models.items():
 
     display.plot()
     plt.title(f'{model_name} Confusion Matrix')
+    save_fig(f"phase3_confusion_matrix_{slug(model_name)}.png")
     plt.show()
 
 # calculating final evaluation metrics (accuracy, precision, recall, f1 score) #
@@ -245,6 +326,7 @@ plt.ylabel('True Positive Rate')
 plt.title('ROC Curves for Final Models')
 plt.legend()
 plt.grid()
+save_fig("phase3_roc_curves.png")
 plt.show()
 
 # printing AUC values #
@@ -300,6 +382,7 @@ plt.ylabel('Precision')
 plt.title('Precision-Recall Curves for Final Models')
 plt.legend()
 plt.grid()
+save_fig("phase3_precision_recall_curves.png")
 plt.show()
 
 # printing average precision values #

@@ -1,11 +1,10 @@
 # importing libraries #
-import setuptools.dist
+import os as _os
 
 import pandas as pd
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 import tensorflow as tf
 from tensorflow import keras
@@ -13,6 +12,24 @@ from tensorflow.keras import layers
 
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
+
+# every figure in this assignment is written to outputs/ as a PNG #
+_os.makedirs("outputs", exist_ok=True)
+
+# helper: saving the current figure into outputs/ #
+def save_fig(filename, dpi=150):
+    # filenames are descriptive & unique per script, they are always written into
+    # outputs/ (relative to the project root) so re-running overwrites cleanly
+    _os.makedirs("outputs", exist_ok=True)
+
+    path = _os.path.join("outputs", filename)
+
+    # 150 dpi keeps the plots sharp enough for the report #
+    plt.savefig(path, dpi=dpi, bbox_inches='tight')
+
+    print(f"saved figure: {path}")
+
+    # the figure is still open, so the plt.show() which follows can display it #
 
 # setting random seed for reproducibility #
 SEED = 42
@@ -22,13 +39,27 @@ np.random.seed(SEED)
 tf.random.set_seed(SEED)
 
 # loading windowed datasets #
-features_30 = pd.read_csv("features_30.csv")
-features_60 = pd.read_csv("features_60.csv")
-features_120 = pd.read_csv("features_120.csv")
+# windowed feature datasets live in data/ (paths are relative to the project root) #
+def data_path(filename):
+    preferred = _os.path.join("data", filename)
+    if _os.path.exists(preferred):
+        return preferred
+    if _os.path.exists(filename):
+        print(f"note: {filename} is still in the project root; "
+              f"using it. move it into data/ to match the documented layout.")
+        return filename
+    raise FileNotFoundError(
+        f"{filename} not found in data/ or in the project root. "
+        "Run code/phase1.py first (from the project root) to generate it."
+    )
 
-# print("30:", features_30.shape)
-# print("60:", features_60.shape)
-# print("120:", features_120.shape)
+features_30 = pd.read_csv(data_path("features_30.csv"))
+features_60 = pd.read_csv(data_path("features_60.csv"))
+features_120 = pd.read_csv(data_path("features_120.csv"))
+
+print("30:", features_30.shape)
+print("60:", features_60.shape)
+print("120:", features_120.shape)
 
 # Data Preparation Before Start of Phase 2 NN #
 # preparing window size 30 #
@@ -53,7 +84,7 @@ X_train_30, X_test_30, y_train_30, y_test_30 = train_test_split(
 scaler_30 = StandardScaler()
 X_train_30_scaled = scaler_30.fit_transform(X_train_30)
 X_test_30_scaled = scaler_30.transform(X_test_30)
-# print("30-reading data prepared successfully")
+print("30-reading data prepared successfully")
 
 # window size 60 #
 
@@ -74,7 +105,7 @@ X_train_60, X_test_60, y_train_60, y_test_60 = train_test_split(
 scaler_60 = StandardScaler()
 X_train_60_scaled = scaler_60.fit_transform(X_train_60)
 X_test_60_scaled = scaler_60.transform(X_test_60)
-# print("60-reading data prepared successfully")
+print("60-reading data prepared successfully")
 
 # window size 120 #
 
@@ -95,7 +126,7 @@ X_train_120, X_test_120, y_train_120, y_test_120 = train_test_split(
 scaler_120 = StandardScaler()
 X_train_120_scaled = scaler_120.fit_transform(X_train_120)
 X_test_120_scaled = scaler_120.transform(X_test_120)
-# print("120-reading data prepared successfully")
+print("120-reading data prepared successfully")
 
 
 # 3.3.1: Neural Networks #
@@ -113,7 +144,7 @@ model_nn1.compile(
     metrics=['accuracy']
 )
 
-# model_nn1.summary()
+model_nn1.summary()
 
 # 5 fold cross validation for NN-1 #
 skf = StratifiedKFold(
@@ -129,7 +160,7 @@ cv_histories_nn1 = []
 for fold, (train_index, val_index) in enumerate(
     skf.split(X_train_30_scaled, y_train_30), start=1
 ):
-    # print(f"\nTraining Fold {fold}...")
+    print(f"\nTraining Fold {fold}...")
 
     X_fold_train = X_train_30_scaled[train_index]
     X_fold_val = X_train_30_scaled[val_index]
@@ -177,36 +208,38 @@ for fold, (train_index, val_index) in enumerate(
         verbose=0
    )
 
-    #cv_accuracies_nn1.append(val_accuracy)
+    cv_accuracies_nn1.append(val_accuracy)
 
-    # print(f"Fold {fold} Validation Accuracy: {val_accuracy:.4f}")
+    print(f"Fold {fold} Validation Accuracy: {val_accuracy:.4f}")
 
-# print("\nNN-1 5-Fold Cross-Validation Results")
-# print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn1):.4f}")
-# print(f"Standard Deviation: {np.std(cv_accuracies_nn1):.4f}")
+print("\nNN-1 5-Fold Cross-Validation Results")
+print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn1):.4f}")
+print(f"Standard Deviation: {np.std(cv_accuracies_nn1):.4f}")
 
 # creating training validation loss & accuracy curves for NN-1 #
-#for i, fold_history in enumerate(cv_histories_nn1, start=1):
+for i, fold_history in enumerate(cv_histories_nn1, start=1):
 
     # accuracy curves #
-    # plt.figure()
-    # plt.plot(fold_history['accuracy'], label='Training Accuracy')
-    # plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
-    # plt.title(f'NN-1 Fold {i} - Accuracy')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Accuracy')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['accuracy'], label='Training Accuracy')
+    plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
+    plt.title(f'NN-1 Fold {i} - Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    save_fig(f"phase2_nn1_fold_{i}_accuracy.png")
+    plt.show()
 
     # loss curves #
-    # plt.figure()
-    # plt.plot(fold_history['loss'], label='Training Loss')
-    # plt.plot(fold_history['val_loss'], label='Validation Loss')
-    # plt.title(f'NN-1 Fold {i} - Loss')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Loss')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['loss'], label='Training Loss')
+    plt.plot(fold_history['val_loss'], label='Validation Loss')
+    plt.title(f'NN-1 Fold {i} - Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    save_fig(f"phase2_nn1_fold_{i}_loss.png")
+    plt.show()
 
 # NN-2: Two Hidden Layers, ReLU, Dropout 0.3 #
 model_nn2 = keras.Sequential([
@@ -223,7 +256,7 @@ model_nn2.compile(
     metrics=['accuracy']
 )
 
-# model_nn2.summary()
+model_nn2.summary()
 
 # 5 fold cross validation for NN-2 #
 cv_accuracies_nn2 = []
@@ -233,7 +266,7 @@ cv_histories_nn2 = []
 for fold, (train_index, val_index) in enumerate(
     skf.split(X_train_30_scaled, y_train_30), start=1
 ):
-    # print(f"\nTraining NN-2 Fold {fold}...")
+    print(f"\nTraining NN-2 Fold {fold}...")
 
     X_fold_train = X_train_30_scaled[train_index]
     X_fold_val = X_train_30_scaled[val_index]
@@ -286,34 +319,36 @@ for fold, (train_index, val_index) in enumerate(
 
     cv_accuracies_nn2.append(val_accuracy)
 
-    # print(f"Fold {fold} Validation Accuracy: {val_accuracy:.4f}")
+    print(f"Fold {fold} Validation Accuracy: {val_accuracy:.4f}")
     
-# print("\nNN-2 5-Fold Cross-Validation Results")
-# print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn2):.4f}")
-# print(f"Standard Deviation: {np.std(cv_accuracies_nn2):.4f}")
+print("\nNN-2 5-Fold Cross-Validation Results")
+print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn2):.4f}")
+print(f"Standard Deviation: {np.std(cv_accuracies_nn2):.4f}")
 
 # creating training validation loss & accuracy curves for NN-2 #
-# for i, fold_history in enumerate(cv_histories_nn2, start=1):
+for i, fold_history in enumerate(cv_histories_nn2, start=1):
 
     # accuracy curves #
-    # plt.figure()
-    # plt.plot(fold_history['accuracy'], label='Training Accuracy')
-    # plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
-    # plt.title(f'NN-2 Fold {i} - Accuracy')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Accuracy')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['accuracy'], label='Training Accuracy')
+    plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
+    plt.title(f'NN-2 Fold {i} - Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    save_fig(f"phase2_nn2_fold_{i}_accuracy.png")
+    plt.show()
 
     # loss curves #
-    # plt.figure()
-    # plt.plot(fold_history['loss'], label='Training Loss')
-    # plt.plot(fold_history['val_loss'], label='Validation Loss')
-    # plt.title(f'NN-2 Fold {i} - Loss')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Loss')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['loss'], label='Training Loss')
+    plt.plot(fold_history['val_loss'], label='Validation Loss')
+    plt.title(f'NN-2 Fold {i} - Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    save_fig(f"phase2_nn2_fold_{i}_loss.png")
+    plt.show()
 
 # NN-3: Three Hidden Layers, Tanh, L2 Regularisation #
 model_nn3 = keras.Sequential([
@@ -333,7 +368,7 @@ model_nn3.compile(
     metrics=['accuracy']
 )
 
-# model_nn3.summary()
+model_nn3.summary()
 
 # 5 fold cross validation for NN-3 #
 cv_accuracies_nn3 = []
@@ -343,7 +378,7 @@ cv_histories_nn3 = []
 for fold, (train_index, val_index) in enumerate(
     skf.split(X_train_30_scaled, y_train_30), start=1
 ):
-    # print(f"\nTraining NN-3 Fold {fold}...")
+    print(f"\nTraining NN-3 Fold {fold}...")
 
     X_fold_train = X_train_30_scaled[train_index]
     X_fold_val = X_train_30_scaled[val_index]
@@ -406,56 +441,42 @@ for fold, (train_index, val_index) in enumerate(
         verbose=0
     )
 
-    # cv_accuracies_nn3.append(val_accuracy)
+    cv_accuracies_nn3.append(val_accuracy)
 
-    # print(f"Fold {fold} Validation Accuracy: {val_accuracy:.4f}")
+    print(f"Fold {fold} Validation Accuracy: {val_accuracy:.4f}")
     
-# print("\nNN-3 5-Fold Cross-Validation Results")
-# print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn3):.4f}")
-# print(f"Standard Deviation: {np.std(cv_accuracies_nn3):.4f}")
+print("\nNN-3 5-Fold Cross-Validation Results")
+print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn3):.4f}")
+print(f"Standard Deviation: {np.std(cv_accuracies_nn3):.4f}")
 
 # creating training validation loss & accuracy curves for NN-3 #
-# for i, fold_history in enumerate(cv_histories_nn3, start=1):
+for i, fold_history in enumerate(cv_histories_nn3, start=1):
 
     # accuracy curves #
-    # plt.figure()
-    # plt.plot(fold_history['accuracy'], label='Training Accuracy')
-    # plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
-    # plt.title(f'NN-3 Fold {i} - Accuracy')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Accuracy')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['accuracy'], label='Training Accuracy')
+    plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
+    plt.title(f'NN-3 Fold {i} - Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    save_fig(f"phase2_nn3_fold_{i}_accuracy.png")
+    plt.show()
 
     # loss curves #
-    # plt.figure()
-    # plt.plot(fold_history['loss'], label='Training Loss')
-    # plt.plot(fold_history['val_loss'], label='Validation Loss')
-    # plt.title(f'NN-3 Fold {i} - Loss')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Loss')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['loss'], label='Training Loss')
+    plt.plot(fold_history['val_loss'], label='Validation Loss')
+    plt.title(f'NN-3 Fold {i} - Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    save_fig(f"phase2_nn3_fold_{i}_loss.png")
+    plt.show()
 
 # NN-4: Best Architecture from NN-1 to NN-3, Adam vs SGD #
-model_nn4 = keras.Sequential([
-    layers.Input(shape=(9,)),
-    layers.Dense(16, activation='tanh',
-                 kernel_regularizer=keras.regularizers.l2(0.001)),
-    layers.Dense(8, activation='tanh',
-                 kernel_regularizer=keras.regularizers.l2(0.001)),
-    layers.Dense(4, activation='tanh',
-                 kernel_regularizer=keras.regularizers.l2(0.001)),
-    layers.Dense(1, activation='sigmoid')
-])
-
-# Optimisers for NN-4 #
-adam_optimizer = keras.optimizers.Adam()
-
-sgd_optimizer = keras.optimizers.SGD(
-    learning_rate=0.01,
-    momentum=0.9
-)
+# (the comparison itself builds a fresh model per fold below, so no top level
+# NN-4 model object is needed here) #
 
 # 5 fold cross validation for NN-4 Adam vs SGD #
 cv_accuracies_nn4_adam = []
@@ -468,7 +489,7 @@ cv_histories_nn4_sgd = []
 for fold, (train_index, val_index) in enumerate(
     skf.split(X_train_30_scaled, y_train_30), start=1
 ):
-    # print(f"\nTraining NN-4 Fold {fold}...")
+    print(f"\nTraining NN-4 Fold {fold}...")
 
     X_fold_train = X_train_30_scaled[train_index]
     X_fold_val = X_train_30_scaled[val_index]
@@ -535,7 +556,7 @@ for fold, (train_index, val_index) in enumerate(
     # saving validation accuracy #
     cv_accuracies_nn4_adam.append(val_accuracy_adam)
     
-    # print(f"Adam Validation Accuracy: {val_accuracy_adam:.4f}")
+    print(f"Adam Validation Accuracy: {val_accuracy_adam:.4f}")
 
     # NN-4 with SGD #
     fold_model_sgd = keras.Sequential([
@@ -598,64 +619,68 @@ for fold, (train_index, val_index) in enumerate(
     # saving validation accuracy #
     cv_accuracies_nn4_sgd.append(val_accuracy_sgd)
 
-    # print(f"SGD Validation Accuracy: {val_accuracy_sgd:.4f}")
+    print(f"SGD Validation Accuracy: {val_accuracy_sgd:.4f}")
 
 # NN-4 overall cross validation results #
-# print("\nNN-4 Adam vs SGD 5-Fold Cross-Validation Results")
+print("\nNN-4 Adam vs SGD 5-Fold Cross-Validation Results")
 
-# print("\nAdam:")
-# print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn4_adam):.4f}")
-# print(f"Standard Deviation: {np.std(cv_accuracies_nn4_adam):.4f}")
+print("\nAdam:")
+print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn4_adam):.4f}")
+print(f"Standard Deviation: {np.std(cv_accuracies_nn4_adam):.4f}")
 
-# print("\nSGD + Momentum:")
-# print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn4_sgd):.4f}")
-# print(f"Standard Deviation: {np.std(cv_accuracies_nn4_sgd):.4f}")
+print("\nSGD + Momentum:")
+print(f"Mean Validation Accuracy: {np.mean(cv_accuracies_nn4_sgd):.4f}")
+print(f"Standard Deviation: {np.std(cv_accuracies_nn4_sgd):.4f}")
 
 # creating training validation loss & accuracy curves for NN-4 Adam #
-# for i, fold_history in enumerate(cv_histories_nn4_adam, start=1):
+for i, fold_history in enumerate(cv_histories_nn4_adam, start=1):
 
     # accuracy curves #
-    # plt.figure()
-    # plt.plot(fold_history['accuracy'], label='Training Accuracy')
-    # plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
-    # plt.title(f'NN-4 Adam Fold {i} - Accuracy')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Accuracy')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['accuracy'], label='Training Accuracy')
+    plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
+    plt.title(f'NN-4 Adam Fold {i} - Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    save_fig(f"phase2_nn4_adam_fold_{i}_accuracy.png")
+    plt.show()
 
     # loss curves #
-    # plt.figure()
-    # plt.plot(fold_history['loss'], label='Training Loss')
-    # plt.plot(fold_history['val_loss'], label='Validation Loss')
-    # plt.title(f'NN-4 Adam Fold {i} - Loss')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Loss')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['loss'], label='Training Loss')
+    plt.plot(fold_history['val_loss'], label='Validation Loss')
+    plt.title(f'NN-4 Adam Fold {i} - Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    save_fig(f"phase2_nn4_adam_fold_{i}_loss.png")
+    plt.show()
 
 # creating training validation loss & accuracy curves for NN-4 SGD #
-# for i, fold_history in enumerate(cv_histories_nn4_sgd, start=1):
+for i, fold_history in enumerate(cv_histories_nn4_sgd, start=1):
 
     # accuracy curves #
-    # plt.figure()
-    # plt.plot(fold_history['accuracy'], label='Training Accuracy')
-    # plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
-    # plt.title(f'NN-4 SGD Fold {i} - Accuracy')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Accuracy')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['accuracy'], label='Training Accuracy')
+    plt.plot(fold_history['val_accuracy'], label='Validation Accuracy')
+    plt.title(f'NN-4 SGD Fold {i} - Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    save_fig(f"phase2_nn4_sgd_fold_{i}_accuracy.png")
+    plt.show()
 
     # loss curves #
-    # plt.figure()
-    # plt.plot(fold_history['loss'], label='Training Loss')
-    # plt.plot(fold_history['val_loss'], label='Validation Loss')
-    # plt.title(f'NN-4 SGD Fold {i} - Loss')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Loss')
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.plot(fold_history['loss'], label='Training Loss')
+    plt.plot(fold_history['val_loss'], label='Validation Loss')
+    plt.title(f'NN-4 SGD Fold {i} - Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    save_fig(f"phase2_nn4_sgd_fold_{i}_loss.png")
+    plt.show()
 
 # comparing effect of window size on NN performance #
 # using NN-4 architecture with Adam as it achieved the highest accuracy #
@@ -680,7 +705,7 @@ for window_size, X_data, y_data in zip(
 
     fold_accuracies = []
 
-    # print(f"\nWindow size = {window_size}")
+    print(f"\nWindow size = {window_size}")
 
     # 5-fold cross validation #
     for fold, (train_index, val_index) in enumerate(
@@ -747,7 +772,7 @@ for window_size, X_data, y_data in zip(
 
         fold_accuracies.append(val_accuracy_adam)
 
-        # print(f"Fold {fold}: {val_accuracy_adam:.4f}")
+        print(f"Fold {fold}: {val_accuracy_adam:.4f}")
 
-    # print(f"Mean CV accuracy: {np.mean(fold_accuracies):.4f}")
-    # print(f"Standard deviation: {np.std(fold_accuracies):.4f}")
+    print(f"Mean CV accuracy: {np.mean(fold_accuracies):.4f}")
+    print(f"Standard deviation: {np.std(fold_accuracies):.4f}")

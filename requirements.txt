@@ -3,6 +3,14 @@
 # Tested with Python 3.12 (TensorFlow 2.19 supports Python 3.9-3.12).
 # Install with:
 #     pip install -r requirements.txt
+#
+# Every pin below is used at run time:
+#   * numpy, pandas, matplotlib, seaborn, scikit-learn and tensorflow are imported
+#     directly by the scripts in code/;
+#   * scipy is not imported by name, but scikit-learn (StratifiedKFold, SVC,
+#     StandardScaler, ...) depends on it at run time;
+#   * setuptools is not imported by the scripts either; TensorFlow/Keras relies on
+#     it at import time, so it stays pinned rather than being dropped.
 
 numpy==2.1.3
 pandas==2.2.3
